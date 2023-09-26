@@ -9,7 +9,7 @@ const provider = new ethers.WebSocketProvider('wss://base.publicnode.com')
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY_FT);
 console.log("wallet", wallet.address);
 
-const gasPrice = ethers.parseUnits('0.0000000001', 'ether');
+const gasPrice = ethers.parseUnits('0.000000001', 'ether');
 
 const account = wallet.connect(provider);
 const friendTech = new ethers.Contract(
@@ -25,6 +25,9 @@ const friendTech = new ethers.Contract(
     account
 );
 
+const blockList = [
+    "0xaffF27468fd68C115F0ccC0e790adD0087C1c01b"
+]
 
 const topGlobalList = [
     "0x976e80df570e6f314396300ea77cb2e7b2f84172",
@@ -76,11 +79,12 @@ const checkUser = async (targetUser) => {
     }
 }
 
-const isBuying = async (buyer, target, isBuy) => {
+const isBuying = async (buyerBalance, targetAddress, isBuy) => {
     return (
-        topGlobalList.includes(target) &&
+        // topGlobalList.includes(target) &&
+        !blockList.includes(targetAddress) &&
         isBuy &&
-        buyer >= await ethToWei("0.08")
+        buyerBalance >= await ethToWei("0.08")
         // buyer >= await ethToWei("0.05") &&
         // weiBalance >= await ethToWei("0.03") &&
         // isBuy &&
@@ -97,6 +101,15 @@ const checkHolderTop = async (buyerAddress) => {
         }
         return false;
     }
+}
+
+const checkBuyerPrice = async (targetAddress) => {
+    const targetBP = await friendTech.getBuyPriceAfterFee(targetAddress, 1);
+    const tp = await weiToEth(targetBP)
+    if (tp >= '0.1') {
+        return true
+    }
+    return false
 }
 
 const processTradeEvent = async (event) => {
@@ -119,9 +132,23 @@ const processTradeEvent = async (event) => {
     const buyOne = await friendTech.getBuyPriceAfterFee(buyerAddress, 1)
     const bo = await weiToEth(buyOne);
 
+    const targetBuyPrice = await friendTech.getBuyPriceAfterFee(targetAddress, 1)
+    const tp = await weiToEth(targetBuyPrice);
+
+    // if (targetAddress === "0xaffF27468fd68C115F0ccC0e790adD0087C1c01b") {
+    //     console.log("asw belio");
+    //     return null;
+    // }
+
+    if (blockList.includes(targetAddress)) {
+        console.log("scam");
+    }
+
     if (
-        await isBuying(weiBuyerBalance, targetAddress, isBuy)
-        && await checkHolderTop(buyerAddress)
+        // targetAddress !== "0xafff27468fd68c115f0ccc0e790add0087c1c01b" &&
+        await isBuying(weiBuyerBalance, targetAddress, isBuy) &&
+        tp >= "0.1"
+        // && await checkHolderTop(buyerAddress)
     ) {
         let qty = 1;
 
@@ -132,9 +159,11 @@ const processTradeEvent = async (event) => {
 
         const userDetail = await checkUser(targetAddress);
         const { twitterUsername, address, twitterUserId, holderCount, shareSupply } = userDetail || {};
-        
-        if (twitterUserId && bp <= '0.02') {
-            const tx = await friendTech.buyShares(buyerAddress, qty, { value: buyPrice, gasPrice })
+
+        console.log(`Target Address ${targetAddress} Balance (${targetBalance} ETH) Buy Price (${tp}) - Buyer Address ${buyerAddress} Balance (${buyerBalance} ETH) - Buying(${isBuy}) --- Buy Price (${bo})`);
+
+        if (twitterUserId && bp <= '0.01' && !alreadyBought.includes(buyerAddress)) {
+            // const tx = await friendTech.buyShares(buyerAddress, qty, { value: buyPrice, gasPrice })
 
             alreadyBought.push(buyerAddress);
             try {
@@ -144,14 +173,14 @@ const processTradeEvent = async (event) => {
                 console.error('Error writing to the "buys" file:', error);
             }
 
-            try {
-                const receipt = await tx.wait();
-                console.log('Transaction Mined:', receipt.blockNumber);
-            } catch (error) {
-                console.log('Transaction Failed:', error);
-            }
+            // try {
+            //     const receipt = await tx.wait();
+            //     console.log('Transaction Mined:', receipt.blockNumber);
+            // } catch (error) {
+            //     console.log('Transaction Failed:', error);
+            // }
         }
-        console.log(`Target Address ${targetAddress} Balance (${targetBalance} ETH) - Buyer Address ${buyerAddress} Balance (${buyerBalance} ETH) - Buying(${isBuy}) --- Buy Price (${bo})`);
+
     }
 
 }
