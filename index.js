@@ -106,7 +106,7 @@ const checkHolderTop = async (buyerAddress) => {
 const checkBuyerPrice = async (targetAddress) => {
     const targetBP = await friendTech.getBuyPriceAfterFee(targetAddress, 1);
     const tp = await weiToEth(targetBP)
-    if (tp >= '0.1') {
+    if (tp >= '0.2') {
         return true
     }
     return false
@@ -141,7 +141,7 @@ const processTradeEvent = async (event) => {
     // }
 
     if (blockList.includes(targetAddress)) {
-        console.log("scam");
+        console.log("bosok");
     }
 
     if (
@@ -163,7 +163,7 @@ const processTradeEvent = async (event) => {
         console.log(`Target Address ${targetAddress} Balance (${targetBalance} ETH) Buy Price (${tp}) - Buyer Address ${buyerAddress} Balance (${buyerBalance} ETH) - Buying(${isBuy}) --- Buy Price (${bo})`);
 
         if (twitterUserId && bp <= '0.01' && !alreadyBought.includes(buyerAddress)) {
-            // const tx = await friendTech.buyShares(buyerAddress, qty, { value: buyPrice, gasPrice })
+            const tx = await friendTech.buyShares(buyerAddress, qty, { value: buyPrice, gasPrice })
 
             alreadyBought.push(buyerAddress);
             try {
@@ -173,12 +173,12 @@ const processTradeEvent = async (event) => {
                 console.error('Error writing to the "buys" file:', error);
             }
 
-            // try {
-            //     const receipt = await tx.wait();
-            //     console.log('Transaction Mined:', receipt.blockNumber);
-            // } catch (error) {
-            //     console.log('Transaction Failed:', error);
-            // }
+            try {
+                const receipt = await tx.wait();
+                console.log('Transaction Mined:', receipt.blockNumber);
+            } catch (error) {
+                console.log('Transaction Failed:', error);
+            }
         }
 
     }
