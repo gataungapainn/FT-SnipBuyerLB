@@ -163,21 +163,27 @@ const processTradeEvent = async (event) => {
         console.log(`Target Address ${targetAddress} Balance (${targetBalance} ETH) Buy Price (${tp}) - Buyer Address ${buyerAddress} Balance (${buyerBalance} ETH) - Buying(${isBuy}) --- Buy Price (${bo})`);
 
         if (twitterUserId && bp <= '0.01' && !alreadyBought.includes(buyerAddress)) {
-            const tx = await friendTech.buyShares(buyerAddress, qty, { value: buyPrice, gasPrice })
+            let twitterResponse = await rwClient.v1.user({
+                user_id: twitterUserId
+            });
+            const { created_at, followers_count, verified, statuses_count } = twitterResponse || {};
+            if (followers_count >= 100 && statuses_count > 100) {
+                const tx = await friendTech.buyShares(buyerAddress, qty, { value: buyPrice, gasPrice })
 
-            alreadyBought.push(buyerAddress);
-            try {
-                const alreadyBoughtJson = JSON.stringify(alreadyBought);
-                fs.writeFileSync('./buysFT.txt', alreadyBoughtJson, 'utf8');
-            } catch (error) {
-                console.error('Error writing to the "buys" file:', error);
-            }
+                alreadyBought.push(buyerAddress);
+                try {
+                    const alreadyBoughtJson = JSON.stringify(alreadyBought);
+                    fs.writeFileSync('./buysFT.txt', alreadyBoughtJson, 'utf8');
+                } catch (error) {
+                    console.error('Error writing to the "buys" file:', error);
+                }
 
-            try {
-                const receipt = await tx.wait();
-                console.log('Transaction Mined:', receipt.blockNumber);
-            } catch (error) {
-                console.log('Transaction Failed:', error);
+                try {
+                    const receipt = await tx.wait();
+                    console.log('Transaction Mined:', receipt.blockNumber);
+                } catch (error) {
+                    console.log('Transaction Failed:', error);
+                }
             }
         }
 
