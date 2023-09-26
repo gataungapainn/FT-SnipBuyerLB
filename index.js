@@ -3,6 +3,7 @@ const axios = require('axios');
 require('dotenv').config();
 const fs = require('fs');
 const { weiToEth, ethToWei } = require('./utils');
+const rwClient = require('./twitterClient');
 
 const SC = '0xCF205808Ed36593aa40a44F10c7f7C2F67d4A4d4'
 const provider = new ethers.WebSocketProvider('wss://base.publicnode.com')
